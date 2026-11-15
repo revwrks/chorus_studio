@@ -1,0 +1,51 @@
+# Chorus Studio .gitignore
+
+# Dependencies (if added in the future)
+/vendor/
+/node_modules/
+
+# Configuration and Secrets (CRITICAL)
+config.php
+.env
+.env.local
+*.local.php
+
+# Sensitive SQL Dumps and Production Backups
+setup/exported_updated_data.sql
+setup/tambah_akun_orang_tua_infinityfree.sql
+*.sql.gz
+*.sql.bak
+
+# Temporary and Cache Directories
+/tmp/*
+!/tmp/.htaccess
+/assets/tmp/*
+!/assets/tmp/.htaccess
+!/assets/tmp/.gitkeep
+
+# User Uploads (keep upload directory, ignore generated media)
+/assets/uploads/*
+!/assets/uploads/.gitkeep
+
+# Test runtime artifacts and cookies
+/tests/cookie_*.txt
+/tests/cs_*
+/tests/chorus_cookie_*
+*.tmp
+
+# Operating System & IDE Files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.user
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
