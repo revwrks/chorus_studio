@@ -1,145 +1,190 @@
 # Chorus Studio 🎵
 
-> Sistem Manajemen & Pelaporan Studio Vokal Berbasis Web dengan Desain **Acoustic Luxury 2.0**.
-
-Chorus Studio adalah aplikasi web komprehensif untuk tata kelola operasional studio musik/vokal. Menggabungkan pencatatan progres murid, jadwal pertemuan, evaluasi refleksi berkala, pustaka lagu iringan, dan portal orang tua ke dalam satu antarmuka yang elegan, cepat, dan responsif.
-
----
-
-## ✨ Fitur Utama
-
-- **Role-Based Access Control (RBAC)**:
-  - **Owner**: Akses penuh ke seluruh data, analitik studio, manajemen user, dan log aktivitas studio.
-  - **Admin**: Tata kelola murid, lagu iringan, jadwal pertemuan, dan target rencana pertemuan.
-  - **Coach**: Akses pengajaran murid, input laporan pertemuan, catatan refleksi, dan evaluasi target.
-  - **Orang Tua**: Portal khusus untuk memantau progres vokal anak, riwayat pertemuan, lagu iringan, dan laporan berkala.
-
-- **Rencana Pertemuan & Target Capaian**:
-  - Target bulanan per murid dengan progress bar capaian real-time.
-  - Multi-filter dock: filter status capaian (tercapai, sedang berjalan, belum mulai), realisasi sesi, coach pembina, dan catatan rencana.
-  - Modal breakdown detail realisasi pertemuan langsung dari tabel rencana.
-
-- **Pustaka Lagu & Iringan Audio**:
-  - Manajemen katalog repertoar lagu dengan tingkat kesulitan (mudah, sedang, sulit, festival).
-  - Tautan audio/video terintegrasi dengan Google Drive dan YouTube.
-
-- **Optimasi Unggah Foto Murid**:
-  - Kompresi sisi klien otomatis berbasis HTML5 Canvas (mengubah file foto kamera resolusi tinggi menjadi ~150KB tanpa penurunan kualitas visual) sebelum dikirim ke server.
-
-- **Ekspor Laporan PDF Berkualitas Tinggi**:
-  - Cetak laporan evaluasi murid individu maupun batch (bulk PDF) menggunakan engine FPDF kustom dengan tipografi modern **Poppins**.
-
-- **Activity Log & Audit Trail**:
-  - Pencatatan otomatis untuk setiap aksi penting di studio dengan mekanisme rolling auto-cleanup maksimal 250 log terbaru untuk menjaga efisiensi database.
+> **Vocal Coaching Academy & Performance Management System**  
+> Modern, production-grade management portal for music & vocal academies built with **Clean OOP MVC Architecture**, **Vanilla ES6+**, and **Acoustic Luxury 2.0 Design System**.
 
 ---
 
-## 🛠️ Tech Stack
-
-- **Backend**: PHP 8.x (Native, OOP Architecture, PDO Database Driver)
-- **Database**: MySQL / MariaDB (Prepared Statements & Transactional Integrity)
-- **Frontend**: HTML5, Vanilla JavaScript (AJAX Form, Live Client Search, Modal Engines), CSS3 Modern Variables (Acoustic Luxury Palette: Forest Pine `#23483b` & Champagne Gold `#c5a059`)
-- **PDF Engine**: FPDF dengan dukungan font kustom Poppins (Medium & Semi-Bold)
-- **Testing**: Native Automated Test Suites (15 test suites end-to-end tanpa dependency eksternal)
+![PHP Version](https://img.shields.io/badge/PHP-8.0%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)
+![Database](https://img.shields.io/badge/MySQL-MariaDB-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![Architecture](https://img.shields.io/badge/Architecture-OOP%20MVC%20%2B%20Services-23483b?style=for-the-badge)
+![Tests](https://img.shields.io/badge/Automated%20Tests-15%2F15%20Passing-2ea44f?style=for-the-badge)
+![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero%20External%20Bloat-c5a059?style=for-the-badge)
 
 ---
 
-## 🚀 Panduan Instalasi Lokal
+## 📌 Sekilas Project
 
-### 1. Prasyarat
-- Web Server (Apache via XAMPP, Laragon, atau Valet)
-- PHP >= 8.0 dengan ekstensi `pdo_mysql`, `gd`, `fileinfo`
-- MySQL / MariaDB
+**Chorus Studio** adalah aplikasi web operasional terpadu yang dirancang khusus untuk studio musik dan akademi vokal profesional. Sistem ini memodernisasi tata kelola studio vokal—menggantikan spreadsheet terpisah dan koordinasi manual—dengan platform web yang elegan, cepat, dan responsif.
 
-### 2. Setup Database
-1. Buat database baru bernama `chorus_studio` di MySQL:
-   ```sql
-   CREATE DATABASE chorus_studio CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+Sistem mencakup pencatatan progres murid, pemantauan target sesi bulanan, evaluasi refleksi pedagogis berkala, katalog repertoar lagu dan iringan audio, portal akses mandiri untuk orang tua murid, hingga generator laporan cetak PDF dengan tipografi modern.
+
+---
+
+## 🔑 Demo Login Accounts
+
+Untuk mempermudah eksplorasi lokal, sistem telah dilengkapi dengan data fiktif siap pakai (`setup/demo_seeder.sql`):
+
+| Role | Username | Password | Deskripsi Hak Akses |
+| :--- | :--- | :--- | :--- |
+| **Owner / Principal** | `admin` | `admin123` | Akses penuh: Analitik studio, manajemen coach & user, audit trail, laporan studio. |
+| **Coach (Pengajar)** | `coach_reva` | `coach123` | Akses pengajaran: Catatan pertemuan murid, evaluasi target, refleksi vokal bulanan. |
+| **Orang Tua Murid** | `ortu_aria` | `ortu123` | Portal wali murid: Memantau progres latihan anak, riwayat pertemuan, & unduh laporan vokal. |
+
+---
+
+## 🏛️ Arsitektur & Prinsip Rekayasa (Engineering Highlights)
+
+Aplikasi dibangun dari nol mengedepankan **high performance**, **zero framework bloat**, dan kemudahan deployment di berbagai lingkungan hosting:
+
+```
+[ HTTP Request ]
+       │
+       ▼
+[ Thin Entry Point ] (e.g. murid.php, index.php)
+       │
+       ├──► [ PSR-4 Autoloader ] (App\Core, App\Controllers, App\Services)
+       ▼
+[ Controller Layer ] (Extends BaseController: CSRF, Auth, Validation, JSON)
+       │
+       ├──► [ Service Layer ] (Domain Business Logic & Complex Workflows)
+       │           │
+       │           └──► [ Database PDO ] (Prepared Statements, Transactional)
+       │
+       └──► [ View Engine ] (Modular Layout Injection & XSS Escaping)
+                   │
+                   ▼
+           [ Rendered HTML ]
+```
+
+### 1. Clean OOP Model-View-Controller (MVC)
+- **Core Infrastructure (`src/Core/`)**: Mengimplementasikan `Autoloader` standar PSR-4, abstract `BaseController` untuk menangani routing, session flash, CSRF protection, dan role validation, serta `View` template engine yang menginjeksi layout secara modular.
+- **Service Layer (`src/Services/`)**: Logika bisnis dipisahkan total dari controller ke dalam 8 dedicated domain services (`MuridService`, `PertemuanService`, `RencanaPertemuanService`, dll) untuk testability tinggi dan *Single Responsibility Principle*.
+- **Ultra-Thin Entry Points**: File root (`index.php`, `murid.php`, dll) hanya berfungsi sebagai *delegation dispatchers* (3–7 baris kode), menjamin kompatibilitas 100% pada server Apache konvensional tanpa rewrite engine yang kompleks.
+
+### 2. Client-Side Canvas Image Compression
+- Formulir upload foto murid dilengkapi engine kompresi otomatis berbasis **HTML5 Canvas API**.
+- Foto resolusi tinggi (3MB–10MB dari kamera ponsel) dikompresi langsung di browser pengguna menjadi Web-optimized JPEG berukuran **~150KB** sebelum dikirim via AJAX multipart.
+- Menghemat konsumsi bandwidth server, mencegah HTTP timeout, dan mengoptimalkan penyimpanan media.
+
+### 3. Target & Realisasi Multi-Filter Dock
+- Halaman perencanaan pertemuan dilengkapi bilik filter dinamis (*Status Capaian*, *Realisasi Pertemuan*, *Coach Pembina*, dan *Catatan Rencana*).
+- Filter berjalan instan di sisi klien dengan engine pencarian teks real-time dan badge counter DOM otomatis tanpa reload halaman.
+
+### 4. Custom Vector PDF Engine (Poppins Typography)
+- Mengintegrasikan engine **FPDF** yang dimodifikasi khusus untuk mendukung embedding font Google Fonts **Poppins (Medium & SemiBold)**.
+- Menghasilkan laporan progres vokal berkualitas tinggi siap cetak, baik per murid maupun ekspor massal (*Bulk PDF generation*).
+
+### 5. Self-Pruning Rolling Activity Log
+- Sistem audit trail mencatat seluruh aktivitas sensitif studio (tambah murid, ubah target, login, hapus data).
+- Dilengkapi mekanisme *rolling window* otomatis (dibatasi 250 baris terbaru) untuk mencegah pembengkakan ukuran tabel pada database produksi jangka panjang.
+
+---
+
+## 🎨 Visual Design: Acoustic Luxury 2.0
+
+Antarmuka dirancang khusus untuk memancarkan aura musikalitas klasik berpadu dengan kemewahan modern (*Acoustic Luxury*):
+- **Forest Pine** (`#23483b`): Warna primer menenangkan yang merepresentasikan ruang studio berperedam kayu akustik.
+- **Champagne Gold** (`#c5a059`): Aksen metalik elegan untuk tombol aksi, badge capaian, dan highlight interaktif.
+- **Warm Cream & Ivory** (`#fcfaf7`): Latar belakang lembut yang ramah di mata dan nyaman digunakan dalam durasi kerja panjang.
+- **Mobile Navigation Dock**: Drawer navigasi adaptif dengan dukungan gestur sentuh untuk smartphone dan tablet.
+
+---
+
+## 🚀 Panduan Menjalankan Secara Lokal (1-Minute Quickstart)
+
+### 1. Clone Repositori
+```bash
+git clone https://github.com/revwrks/chorus_studio.git
+cd chorus_studio
+```
+
+### 2. Setup Database & Demo Data
+1. Buka MySQL / MariaDB (misal via phpMyAdmin atau CLI), lalu import skema dan data demo:
+   ```bash
+   mysql -u root -p < setup/demo_seeder.sql
    ```
-2. Import skema dan data awal dari direktori `setup/`:
-   - Import `setup/setup.sql` atau gunakan `setup/exported_updated_data.sql` untuk basis data lengkap.
+   *(File ini otomatis membuat database `chorus_studio`, seluruh struktur tabel, dan data fiktif siap pakai).*
 
-### 3. Konfigurasi
-Koneksi database telah dikonfigurasi secara otomatis di `includes/classes/Database.php`.
-- Secara default, pada lingkungan lokal (`localhost` / `127.0.0.1`), sistem menggunakan:
-  - Host: `localhost`
-  - Database: `chorus_studio`
-  - User: `root`
-  - Password: `''` (kosong)
-- Anda juga dapat menggunakan Environment Variables:
-  - `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`
+### 3. Konfigurasi Environment
+Salin file template konfigurasi menjadi `config.php`:
+```bash
+cp config.example.php config.php
+```
+*Secara default, `config.php` telah terkonfigurasi untuk MySQL lokal (`localhost`, database: `chorus_studio`, user: `root`, password: kosong).*
 
-### 4. Menjalankan Aplikasi
-1. Tempatkan repositori ini pada direktori root web server (misal: `htdocs/chorus_studio`).
-2. Pastikan direktori `assets/uploads/` memiliki izin tulis (writable).
-3. Buka browser dan arahkan ke:
-   ```
-   http://localhost/chorus_studio/login.php
-   ```
+### 4. Buka di Browser
+Arahkan browser Anda ke:
+```text
+http://localhost/chorus_studio/login.php
+```
+Gunakan akun demo:
+- **Username:** `admin` | **Password:** `admin123`
 
 ---
 
-## 🧪 Menjalankan Automated Tests
+## 🧪 Automated Testing Suite
 
-Seluruh fitur inti dilengkapi test suite otomatis tanpa memerlukan dependency eksternal:
+Aplikasi diverifikasi melalui **15 automated test suites** independen tanpa memerlukan PHPUnit atau library pihak ketiga:
 
 ```bash
-# Menjalankan test filter rencana pertemuan
-php tests/test_filter_rencana_pertemuan.php
-
-# Menjalankan test regression role coach & CRUD
+# Menjalankan test regression hak akses & CRUD Coach
 php tests/regression_test.php
 
-# Menjalankan test rencana pertemuan & target
+# Menjalankan test flow rencana pertemuan & capaian target
 php tests/test_rencana_pertemuan_flow.php
 
-# Menjalankan test portal orang tua
+# Menjalankan test live search, AJAX forms, & image compression contract
+php tests/test_features_1_2_3.php
+
+# Menjalankan test portal akses orang tua
 php tests/test_orang_tua_feature.php
 php tests/test_http_parent_flow.php
 
-# Menjalankan test activity log
+# Menjalankan test filter dinamis & visual zoom
+php tests/test_filter_rencana_pertemuan.php
+php tests/test_filter_pertemuan_and_coach_dashboard.php
+php tests/test_filtering_and_photo_zoom.php
+
+# Menjalankan test audit trail activity log
 php tests/test_activity_log_flow.php
 ```
 
 ---
 
-## 📂 Struktur Direktori & Arsitektur MVC (OOP)
+## 📂 Struktur Direktori Proyek
 
-Aplikasi dibangun dengan arsitektur **Clean MVC (Model-View-Controller)** berbasis Object-Oriented Programming (OOP) yang terstruktur rapi:
-
-```
+```text
 chorus_studio/
-├── src/                    # Source Code Inti Berorientasi Objek (OOP)
-│   ├── Core/               # Infrastructure & Base Classes (Database, Auth, BaseController, View, Autoloader)
-│   ├── Controllers/        # Page Controllers (Dashboard, Murid, Lagu, Pertemuan, Rencana, Auth, dll.)
-│   └── Services/           # Domain Services (MuridService, PertemuanService, ActivityLogService, dll.)
-├── views/                  # Template Markup & Tampilan Antarmuka Bersih
-│   ├── dashboard/          # View Dashboard Staff & Portal Orang Tua
-│   ├── murid/              # View Manajemen Murid & Modals
-│   ├── rencana_pertemuan/  # View Target Rencana & Filter Dock
-│   ├── pertemuan/          # View Log Sesi Pertemuan & Filter
-│   ├── iringan/            # View Katalog Audio Iringan
-│   ├── lagu/               # View Master Repertoar Lagu
-│   ├── refleksi/           # View Catatan Evaluasi & Filter
-│   ├── admin/              # View Manajemen Akun & Hak Akses
-│   ├── profil/             # View Pengaturan Profil Mandiri
-│   ├── activity_log/       # View Audit Trail Sistem
-│   ├── auth/               # View Form Login
-│   └── laporan/            # View Unduh Laporan Individual & Bulk ZIP
-├── assets/                 # Brand assets, logo, icon, dan folder uploads
-│   ├── img/                # Logo & visual brand identity
-│   ├── tmp/                # File temporer sesi ekspor PDF
-│   └── uploads/            # Foto profil murid (git-ignored)
+├── config.example.php      # Template konfigurasi environment database aman
+├── config.php              # Konfigurasi aktif server (diabaikan oleh Git)
+├── src/                    # Source Code OOP MVC
+│   ├── Core/               # Autoloader, BaseController, View Engine, Database PDO
+│   ├── Controllers/        # 12 Page & API Controllers
+│   └── Services/           # 8 Domain Business Services (Separation of Concerns)
+├── views/                  # View Template Modular
+│   ├── dashboard/          # Tampilan dashboard staff & portal wali murid
+│   ├── rencana_pertemuan/  # Manajemen target & filter dock interaktif
+│   ├── murid/              # Katalog murid, profil, & modal canvas upload
+│   ├── pertemuan/          # Log catatan sesi vokal & riwayat
+│   ├── iringan/            # Manajemen audio backing track
+│   ├── lagu/               # Repertoar lagu & tingkat kesulitan
+│   ├── refleksi/           # Evaluasi bulanan murid
+│   ├── admin/              # Tata kelola akun staf & role RBAC
+│   ├── activity_log/       # Tampilan audit trail aktivitas studio
+│   ├── auth/               # Halaman login
+│   ├── profil/             # Form edit profil mandiri
+│   └── laporan/            # Preview & unduh laporan evaluasi PDF
+├── assets/                 # Aset statis (Logo, brand graphics, placeholder)
 ├── includes/               # Bootstrap global, auth bridge, dan layout header/footer
-├── setup/                  # Skema database & script migrasi
+├── setup/                  # Skrip database (demo_seeder.sql, skema DDL)
 ├── style/                  # Styling tema Acoustic Luxury 2.0 (main.css)
 ├── tests/                  # 15 Automated Test Suites
-├── [index.php, ...]        # Thin Entry Points (mendelegasikan request langsung ke Controller)
+└── [index.php, ...]        # Thin Entry Points (mendelegasikan request ke Controller)
 ```
-
 
 ---
 
-## 📄 Lisensi
+## 👤 Author & Credits
 
-Chorus Studio &copy; Hak Cipta Dilindungi. Dikembangkan untuk efisiensi dan tata kelola profesional studio vokal.
+**Chorus Studio** dirancang dan dikembangkan dengan penuh perhatian terhadap arsitektur perangkat lunak yang bersih, skalabel, dan pengalaman pengguna yang bernilai tinggi.
