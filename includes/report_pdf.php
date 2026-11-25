@@ -221,14 +221,17 @@ function build_report_pdf(PDO $pdo, int $id_murid, int $tahun, int $bulan)
 
     // Watermark
     if ($wmPath && file_exists($wmPath)) {
-        $pdfW = $pdf->contentWidth();
-        $wmWidthMm = $pdfW * 0.6;
-        list($origW, $origH) = getimagesize($wmPath);
-        $ratio = $origH / $origW;
-        $wmHeightMm = $wmWidthMm * $ratio;
-        $x = ($pdf->GetPageWidth() - $wmWidthMm) / 2;
-        $y = ($pdf->GetPageHeight() - $wmHeightMm) / 2 + 20;
-        $pdf->Image($wmPath, $x, $y, $wmWidthMm, $wmHeightMm, '', '', '', false, 300, '', false, false, 0, 'C');
+        $wmSize = @getimagesize($wmPath);
+        if ($wmSize && !empty($wmSize[0]) && !empty($wmSize[1])) {
+            $pdfW = $pdf->contentWidth();
+            $wmWidthMm = $pdfW * 0.6;
+            list($origW, $origH) = $wmSize;
+            $ratio = $origH / $origW;
+            $wmHeightMm = $wmWidthMm * $ratio;
+            $x = ($pdf->GetPageWidth() - $wmWidthMm) / 2;
+            $y = ($pdf->GetPageHeight() - $wmHeightMm) / 2 + 20;
+            $pdf->Image($wmPath, $x, $y, $wmWidthMm, $wmHeightMm);
+        }
     }
 
     // Student Info Section
@@ -254,18 +257,30 @@ function build_report_pdf(PDO $pdo, int $id_murid, int $tahun, int $bulan)
     $fotoX = 150;
     $fotoY = 50;
     $fotoW = 45;
-    if ($murid['foto'] && file_exists(CHORUS_ROOT . '/' . $murid['foto'])) {
-        list($pw, $ph) = getimagesize(CHORUS_ROOT . '/' . $murid['foto']);
-        $ratio = min($fotoW / $pw, 55 / $ph);
-        $finalW = $pw * $ratio;
-        $finalH = $ph * $ratio;
-        // Shadow effect for photo
-        $pdf->SetFillColor(240, 240, 240);
-        $pdf->Rect($fotoX + 1, $fotoY + 1, $finalW, $finalH, 'F');
-        $pdf->Image(CHORUS_ROOT . '/' . $murid['foto'], $fotoX, $fotoY, $finalW, $finalH);
-        $pdf->SetDrawColor($pdf->brandAccent[0], $pdf->brandAccent[1], $pdf->brandAccent[2]);
-        $pdf->SetLineWidth(0.5);
-        $pdf->Rect($fotoX, $fotoY, $finalW, $finalH, 'D');
+    if (!empty($murid['foto'])) {
+        $uploadsRoot = realpath(CHORUS_ROOT . '/assets/uploads');
+        $fotoRealPath = realpath(CHORUS_ROOT . '/' . ltrim((string)$murid['foto'], '/\\'));
+        if (
+            $uploadsRoot !== false
+            && $fotoRealPath !== false
+            && is_file($fotoRealPath)
+            && strpos($fotoRealPath, $uploadsRoot . DIRECTORY_SEPARATOR) === 0
+        ) {
+            $fotoSize = @getimagesize($fotoRealPath);
+            if ($fotoSize && !empty($fotoSize[0]) && !empty($fotoSize[1])) {
+                list($pw, $ph) = $fotoSize;
+                $ratio = min($fotoW / $pw, 55 / $ph);
+                $finalW = $pw * $ratio;
+                $finalH = $ph * $ratio;
+                // Shadow effect for photo
+                $pdf->SetFillColor(240, 240, 240);
+                $pdf->Rect($fotoX + 1, $fotoY + 1, $finalW, $finalH, 'F');
+                $pdf->Image($fotoRealPath, $fotoX, $fotoY, $finalW, $finalH);
+                $pdf->SetDrawColor($pdf->brandAccent[0], $pdf->brandAccent[1], $pdf->brandAccent[2]);
+                $pdf->SetLineWidth(0.5);
+                $pdf->Rect($fotoX, $fotoY, $finalW, $finalH, 'D');
+            }
+        }
     }
 
     $pdf->SetY(75);

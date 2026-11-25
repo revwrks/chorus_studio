@@ -1,4 +1,8 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
 /**
  * Test Suite: Filter Rencana Pertemuan
  * Verifies the multi-filter toolbar, column mapping, precision attributes, and role awareness.

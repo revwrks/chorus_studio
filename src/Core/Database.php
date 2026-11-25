@@ -44,7 +44,11 @@ class Database
                 self::$instance = new PDO($dsn, $user, $pass, $options);
             } catch (PDOException $e) {
                 error_log("Database Connection Error: " . $e->getMessage());
-                die('Terjadi kesalahan pada sistem database: ' . ($isLocal ? $e->getMessage() : 'Gagal terhubung ke database hosting. Pastikan host, nama database, username, dan password di Database configuration sudah diisi dengan benar.'));
+                if (PHP_SAPI === 'cli') {
+                    die('Database Connection Error: ' . $e->getMessage() . PHP_EOL);
+                }
+                http_response_code(500);
+                die('Terjadi kesalahan pada sistem database. Silakan coba beberapa saat lagi.');
             }
         }
 

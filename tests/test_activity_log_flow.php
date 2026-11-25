@@ -1,4 +1,8 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
 /**
  * Automated E2E Integration Test: Activity Log
  * Tests role boundaries (Owner & Admin only), 250-item cap, pagination UI, and action logging.

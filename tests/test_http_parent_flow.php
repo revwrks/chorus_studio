@@ -1,4 +1,8 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
 /**
  * End-to-End HTTP Test for Orang Tua Feature
  * Exercises http://localhost/chorus_studio
@@ -153,7 +157,7 @@ echo "   Dashboard clean (No raw PHP leaked code): " . ($hasNoLeakedCode ? "YES"
 // 8. Orang Tua accesses Lagu Iringan
 echo "6. Orang Tua accessing Lagu Iringan (iringan.php)...\n";
 $iringanOrtuResp = curl_request("$baseUrl/iringan.php", 'GET', null, $parentCookie);
-$hasIringanTitle = strpos($iringanOrtuResp['body'], 'Lagu Iringan Latihan & Lomba') !== false;
+$hasIringanTitle = strpos(html_entity_decode($iringanOrtuResp['body'], ENT_QUOTES, 'UTF-8'), 'Lagu Iringan Latihan & Lomba') !== false;
 $hasTrackTitle = strpos($iringanOrtuResp['body'], 'Simfoni E2E Test') !== false;
 $hasGDriveBtn = strpos($iringanOrtuResp['body'], 'Buka Google Drive') !== false;
 echo "   Iringan page has header: " . ($hasIringanTitle ? "YES" : "NO") . "\n";

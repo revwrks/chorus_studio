@@ -1,100 +1,100 @@
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
-      <h3 class="mb-1 fw-bold" style="font-family:'Outfit',sans-serif;letter-spacing:-0.02em;"><i class="fa fa-file-pdf me-2" style="color:var(--primary);"></i>Generate Laporan</h3>
-      <div class="text-muted small">Cetak atau ekspor dokumen hasil evaluasi dan latihan vokal murid ke format PDF & ZIP.</div>
+      <h1 class="page-title mb-1"><i class="fa fa-file-pdf me-2" style="color:var(--primary);" aria-hidden="true"></i>Generate Laporan</h1>
+      <p class="text-muted small mb-0">Cetak atau ekspor dokumen hasil evaluasi dan latihan vokal murid ke format PDF dan arsip ZIP.</p>
     </div>
   </div>
 
-  <div class="card bento-hero-card p-4 mb-4" style="border-top:3px solid var(--primary);">
+  <div class="card bento-hero-card p-4 mb-4">
     <div class="d-flex align-items-center gap-2 mb-3">
-      <div class="bento-icon-box" style="background:rgba(35,72,59,0.1);color:var(--primary);width:38px;height:38px;border-radius:10px;">
-        <i class="fa fa-file-export"></i>
+      <div class="bento-icon-box" style="background:var(--primary-soft);color:var(--primary);width:38px;height:38px;border-radius:10px;">
+        <i class="fa fa-file-export" aria-hidden="true"></i>
       </div>
       <div>
-        <h5 class="mb-0 fw-bold" style="font-family:'Outfit',sans-serif;letter-spacing:-0.01em;">Laporan Individual</h5>
-        <small class="text-muted">Cetak rapor perkembangan latihan vokal untuk satu orang murid</small>
+        <h2 class="h5 mb-0 fw-bold" style="letter-spacing:-0.01em;">Laporan Individual</h2>
+        <small class="text-muted">Cetak rapor perkembangan latihan vokal untuk satu murid</small>
       </div>
     </div>
     <form method="get" action="generate_pdf.php" target="_blank" class="row g-3">
       <?php if (!empty($muridList)): ?>
         <div class="col-md-4">
-          <label class="form-label small fw-semibold">Pilih Murid</label>
-          <select name="id_murid" class="form-select form-select-sm" style="border-radius:8px;">
+          <label class="form-label small fw-semibold" for="singleIdMurid">Pilih Murid</label>
+          <select id="singleIdMurid" name="id_murid" class="form-select form-select-sm" style="border-radius:8px;">
             <?php foreach ($muridList as $mm): ?>
-              <option value="<?= $mm['id'] ?>"><?= htmlspecialchars($mm['nama']) ?></option>
+              <option value="<?= e((string)$mm['id']) ?>"><?= e($mm['nama'] ?? '') ?></option>
             <?php endforeach; ?>
           </select>
         </div>
       <?php else: ?>
         <div class="col-md-4">
-          <label class="form-label small fw-semibold">Pilih Murid</label>
+          <span class="form-label small fw-semibold d-block">Pilih Murid</span>
           <div class="text-muted small">Belum ada data murid.</div>
         </div>
       <?php endif; ?>
       <?php if (!empty($tahunList)): ?>
         <div class="col-md-2">
-          <label class="form-label small fw-semibold">Tahun</label>
-          <select name="tahun" class="form-select form-select-sm" style="border-radius:8px;">
+          <label class="form-label small fw-semibold" for="singleTahun">Tahun</label>
+          <select id="singleTahun" name="tahun" class="form-select form-select-sm" style="border-radius:8px;">
             <?php foreach ($tahunList as $t): ?>
-              <option value="<?= $t ?>" <?= $t == $selectedYear ? 'selected' : '' ?>><?= $t ?></option>
+              <option value="<?= e((string)$t) ?>" <?= (string)$t === (string)$selectedYear ? 'selected' : '' ?>><?= e((string)$t) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
       <?php endif; ?>
       <?php if (!empty($bulanList)): ?>
         <div class="col-md-3">
-          <label class="form-label small fw-semibold">Bulan</label>
-          <select name="bulan" class="form-select form-select-sm" style="border-radius:8px;">
+          <label class="form-label small fw-semibold" for="singleBulan">Bulan</label>
+          <select id="singleBulan" name="bulan" class="form-select form-select-sm" style="border-radius:8px;">
             <?php foreach ($bulanList as $num): ?>
-              <option value="<?= $num ?>" <?= $num == $selectedMonth ? 'selected' : '' ?>><?= $namaBulan[$num] ?? $num ?></option>
+              <option value="<?= e((string)$num) ?>" <?= (string)$num === (string)$selectedMonth ? 'selected' : '' ?>><?= e((string)($namaBulan[$num] ?? $num)) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
       <?php endif; ?>
       <div class="col-md-3 align-self-end">
-        <button class="btn btn-primary btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2" style="height:36px;border-radius:8px;font-weight:600;" <?= $canSingle ? '' : 'disabled' ?>><i class="fa fa-download"></i><span>Generate PDF</span></button>
+        <button type="submit" class="btn btn-primary btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2" style="height:36px;border-radius:8px;font-weight:600;" <?= $canSingle ? '' : 'disabled' ?>><i class="fa fa-download" aria-hidden="true"></i><span>Generate PDF</span></button>
       </div>
     </form>
   </div>
 
   <?php if (is_admin_or_owner()): ?>
-    <div class="card bento-hero-card p-4 mb-4" style="border-top:3px solid var(--accent);">
+    <div class="card bento-hero-card p-4 mb-4">
       <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div class="d-flex align-items-center gap-2">
-          <div class="bento-icon-box" style="background:rgba(197,160,89,0.15);color:var(--accent);width:38px;height:38px;border-radius:10px;">
-            <i class="fa fa-file-zipper"></i>
+          <div class="bento-icon-box" style="background:var(--accent-soft);color:var(--accent);width:38px;height:38px;border-radius:10px;">
+            <i class="fa fa-file-zipper" aria-hidden="true"></i>
           </div>
           <div>
-            <h5 class="mb-0 fw-bold" style="font-family:'Outfit',sans-serif;letter-spacing:-0.01em;">Bulk Export Laporan Bulanan</h5>
-            <small class="text-muted">Unduh seluruh laporan murid aktif sekaligus dalam arsip ZIP studio</small>
+            <h2 class="h5 mb-0 fw-bold" style="letter-spacing:-0.01em;">Bulk Export Laporan Bulanan</h2>
+            <small class="text-muted">Unduh seluruh laporan murid aktif sekaligus dalam satu arsip ZIP studio</small>
           </div>
         </div>
-        <span class="badge bento-badge" style="background:rgba(197,160,89,0.15);color:var(--accent);"><i class="fa fa-layer-group me-1"></i>Arsip Lengkap</span>
+        <span class="bento-badge"><i class="fa fa-layer-group me-1" aria-hidden="true"></i>Arsip Lengkap</span>
       </div>
       <form method="get" action="generate_bulk_pdf.php" class="row g-3">
         <?php if (!empty($tahunList)): ?>
           <div class="col-md-2">
-            <label class="form-label small fw-semibold">Tahun</label>
-            <select name="tahun" class="form-select form-select-sm" style="border-radius:8px;">
+            <label class="form-label small fw-semibold" for="bulkTahun">Tahun</label>
+            <select id="bulkTahun" name="tahun" class="form-select form-select-sm" style="border-radius:8px;">
               <?php foreach ($tahunList as $t): ?>
-                <option value="<?= $t ?>" <?= $t == $selectedYear ? 'selected' : '' ?>><?= $t ?></option>
+                <option value="<?= e((string)$t) ?>" <?= (string)$t === (string)$selectedYear ? 'selected' : '' ?>><?= e((string)$t) ?></option>
               <?php endforeach; ?>
             </select>
           </div>
         <?php endif; ?>
         <?php if (!empty($bulanList)): ?>
           <div class="col-md-3">
-            <label class="form-label small fw-semibold">Bulan</label>
-            <select name="bulan" class="form-select form-select-sm" style="border-radius:8px;">
+            <label class="form-label small fw-semibold" for="bulkBulan">Bulan</label>
+            <select id="bulkBulan" name="bulan" class="form-select form-select-sm" style="border-radius:8px;">
               <?php foreach ($bulanList as $num): ?>
-                <option value="<?= $num ?>" <?= $num == $selectedMonth ? 'selected' : '' ?>><?= $namaBulan[$num] ?? $num ?></option>
+                <option value="<?= e((string)$num) ?>" <?= (string)$num === (string)$selectedMonth ? 'selected' : '' ?>><?= e((string)($namaBulan[$num] ?? $num)) ?></option>
               <?php endforeach; ?>
             </select>
           </div>
         <?php endif; ?>
         <div class="col-md-4 align-self-end">
-          <button class="btn btn-primary btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2" style="height:36px;border-radius:8px;font-weight:600;" <?= $canBulk ? '' : 'disabled' ?>><i class="fa fa-file-zipper"></i><span>Download Semua (ZIP)</span></button>
+          <button type="submit" class="btn btn-primary btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2" style="height:36px;border-radius:8px;font-weight:600;" <?= $canBulk ? '' : 'disabled' ?>><i class="fa fa-file-zipper" aria-hidden="true"></i><span>Download Semua (ZIP)</span></button>
         </div>
       </form>
     </div>

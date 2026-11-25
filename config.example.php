@@ -27,4 +27,6 @@ return [
     'db_name' => 'your_hosting_db_name',
     'db_user' => 'your_hosting_db_user',
     'db_pass' => 'your_hosting_db_password',
+    // Set true only if running behind a trusted reverse proxy that sets X-Forwarded-For / X-Forwarded-Proto
+    // 'trust_proxy_headers' => false,
 ];

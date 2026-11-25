@@ -1,4 +1,8 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
 /**
  * Test suite to verify User Request revisions:
  * 1. Iringan Orang Tua formatted as table
@@ -62,7 +66,7 @@ foreach ($pages as $file => $spec) {
     assert_test(strpos($content, 'data-limit="all"') !== false, "$file supports 'Semua' limit pill");
 }
 
-$footerContent = file_get_contents(__DIR__ . '/../includes/footer.php');
+$footerContent = file_get_contents(__DIR__ . '/../includes/footer.php') . "\n" . file_get_contents(__DIR__ . '/../assets/js/app.js');
 assert_test(strpos($footerContent, 'paginationEl.querySelector') !== false, "footer.php handles client-side pagination slicing");
 assert_test(strpos($footerContent, 'table._currentPage = 1') !== false, "footer.php resets page on new search or filter change");
 

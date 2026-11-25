@@ -1,4 +1,8 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
 /**
  * Comprehensive Regression Test Suite for Chorus Studio
  * Tests all CRUD operations for role 'coach' on Murid and Lagu,

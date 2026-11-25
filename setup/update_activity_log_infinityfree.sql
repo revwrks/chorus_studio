@@ -5,7 +5,7 @@
 -- PANDUAN IMPORT KE INFINITYFREE:
 -- 1. Buka cPanel akun InfinityFree Anda.
 -- 2. Buka menu "phpMyAdmin", lalu klik database Chorus Studio Anda
---    (misal: if0_41396992_chorus_studio).
+--    (misal: your_hosting_db_name).
 -- 3. Klik tab "SQL" di bagian atas.
 -- 4. Copy-paste isi query di bawah ini, lalu klik tombol "Go / Kirim".
 -- =====================================================================

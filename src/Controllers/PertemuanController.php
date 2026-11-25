@@ -42,6 +42,7 @@ class PertemuanController extends BaseController
         $paginated = $this->pertemuanService->getPaginated(1, 9999);
         $rows = $paginated['data'] ?? [];
         $totalRows = count($rows);
+        $search = trim($_GET['q'] ?? '');
 
         $allMurid = $this->muridService->getAll();
         $allLagu = $this->laguService->getAll();
@@ -73,6 +74,7 @@ class PertemuanController extends BaseController
         $this->render('pertemuan/index', [
             'rows' => $rows,
             'totalRows' => $totalRows,
+            'search' => $search,
             'allMurid' => $allMurid,
             'allLagu' => $allLagu,
             'periodeList' => $periodeList,

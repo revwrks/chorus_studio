@@ -26,10 +26,12 @@ class MuridController extends BaseController
 
         $rows = $this->muridService->getAll();
         $totalRows = count($rows);
+        $search = trim($_GET['q'] ?? '');
 
         $this->render('murid/index', [
             'rows' => $rows,
             'totalRows' => $totalRows,
+            'search' => $search,
             'muridService' => $this->muridService,
         ]);
     }

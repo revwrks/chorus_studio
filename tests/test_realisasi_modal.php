@@ -1,4 +1,8 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
 /**
  * Test Suite: Realisasi Detail Modal Verification
  * Tests getRealisasiDates method, AJAX endpoints, and UI integration on both rencana_pertemuan.php and index.php.

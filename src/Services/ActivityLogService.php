@@ -16,15 +16,28 @@ class ActivityLogService
 {
     private PDO $pdo;
     private const MAX_CAP = 250;
+    private static bool $tableVerified = false;
+    private static ?array $appConfig = null;
 
     public function __construct(?PDO $pdo = null)
     {
         $this->pdo = $pdo ?? Database::getConnection();
+    }
+
+    /**
+     * Ensure the activity_log table exists (lazy fallback only)
+     */
+    private function ensureTable(): void
+    {
+        if (self::$tableVerified) {
+            return;
+        }
+        self::$tableVerified = true;
         $this->ensureTableExists();
     }
 
     /**
-     * Ensure the activity_log table exists
+     * Create the activity_log table if missing
      */
     public function ensureTableExists(): void
     {
@@ -46,9 +59,53 @@ class ActivityLogService
                 CONSTRAINT `fk_activity_user` FOREIGN KEY (`user_id`) REFERENCES `admin` (`id`) ON DELETE SET NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
             $this->pdo->exec($sql);
+            self::$tableVerified = true;
         } catch (Throwable $e) {
-            error_log("ActivityLogService Table Check Error: " . $e->getMessage());
+            error_log('[ActivityLogService::ensureTableExists] ' . $e->getMessage());
         }
+    }
+
+    private function isMissingTableException(Throwable $e): bool
+    {
+        return $e instanceof PDOException && (string)$e->getCode() === '42S02';
+    }
+
+    private static function loadConfig(): array
+    {
+        if (self::$appConfig !== null) {
+            return self::$appConfig;
+        }
+
+        $rootDir = defined('CHORUS_ROOT') ? CHORUS_ROOT : dirname(__DIR__, 2);
+        $configFile = $rootDir . '/config.php';
+        $loaded = file_exists($configFile) ? require $configFile : [];
+        self::$appConfig = is_array($loaded) ? $loaded : [];
+        return self::$appConfig;
+    }
+
+    private function getClientIp(): string
+    {
+        $config = self::loadConfig();
+        $trustProxy = !empty($config['trust_proxy_headers']) && $config['trust_proxy_headers'] === true;
+
+        $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $ip = $remoteAddr;
+
+        if ($trustProxy) {
+            $candidate = $_SERVER['HTTP_CF_CONNECTING_IP']
+                ?? $_SERVER['HTTP_X_FORWARDED_FOR']
+                ?? $remoteAddr;
+            if (strpos($candidate, ',') !== false) {
+                $candidate = trim(explode(',', $candidate)[0]);
+            } else {
+                $candidate = trim($candidate);
+            }
+            if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+                $ip = $candidate;
+            }
+        }
+
+        return substr(trim($ip), 0, 45);
     }
 
     /**
@@ -108,14 +165,7 @@ class ActivityLogService
             }
 
             // Get client IP address
-            $ip = $_SERVER['HTTP_CF_CONNECTING_IP'] 
-               ?? $_SERVER['HTTP_X_FORWARDED_FOR'] 
-               ?? $_SERVER['REMOTE_ADDR'] 
-               ?? '127.0.0.1';
-            if (strpos($ip, ',') !== false) {
-                $ip = trim(explode(',', $ip)[0]);
-            }
-            $ip = substr($ip, 0, 45);
+            $ip = $this->getClientIp();
 
             // Get user agent
             $userAgent = substr($_SERVER['HTTP_USER_AGENT'] ?? 'CLI/Unknown', 0, 255);
@@ -126,8 +176,7 @@ class ActivityLogService
                 $tipe = 'info';
             }
 
-            $stmt = $this->pdo->prepare('INSERT INTO activity_log (user_id, user_nama, user_role, action, tipe, deskripsi, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([
+            $params = [
                 $userId,
                 substr($userNama, 0, 150),
                 substr($userRole, 0, 50),
@@ -136,14 +185,28 @@ class ActivityLogService
                 trim($deskripsi),
                 $ip,
                 $userAgent
-            ]);
+            ];
+
+            $sql = 'INSERT INTO activity_log (user_id, user_nama, user_role, action, tipe, deskripsi, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+            try {
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
+            } catch (PDOException $e) {
+                if ($this->isMissingTableException($e) && !self::$tableVerified) {
+                    $this->ensureTable();
+                    $stmt = $this->pdo->prepare($sql);
+                    $stmt->execute($params);
+                } else {
+                    throw $e;
+                }
+            }
 
             // Enforce maximum cap of 250 items
             $this->enforceCap();
 
             return true;
         } catch (Throwable $e) {
-            error_log("ActivityLogService::record Error: " . $e->getMessage());
+            error_log('[ActivityLogService::record] ' . $e->getMessage());
             return false;
         }
     }
@@ -203,9 +266,21 @@ class ActivityLogService
                 ORDER BY al.id DESC
                 LIMIT {$limit}";
 
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        $rows = $stmt->fetchAll();
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll();
+        } catch (PDOException $e) {
+            if ($this->isMissingTableException($e) && !self::$tableVerified) {
+                $this->ensureTable();
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
+                $rows = $stmt->fetchAll();
+            } else {
+                error_log('[ActivityLogService::getLogs] ' . $e->getMessage());
+                $rows = [];
+            }
+        }
 
         // Enrich rows with formatted presentation attributes
         return array_map([$this, 'enrichLogData'], $rows);
@@ -280,6 +355,7 @@ class ActivityLogService
             'EDIT_LAGU' => ['label' => 'Edit Lagu', 'icon' => 'fa-edit', 'badge_class' => 'badge-log-info'],
             'HAPUS_LAGU' => ['label' => 'Hapus Lagu', 'icon' => 'fa-trash-alt', 'badge_class' => 'badge-log-danger'],
             'TAMBAH_IRINGAN' => ['label' => 'Tambah Iringan', 'icon' => 'fa-headphones', 'badge_class' => 'badge-log-success'],
+            'EDIT_IRINGAN' => ['label' => 'Edit Iringan', 'icon' => 'fa-edit', 'badge_class' => 'badge-log-info'],
             'HAPUS_IRINGAN' => ['label' => 'Hapus Iringan', 'icon' => 'fa-trash-alt', 'badge_class' => 'badge-log-danger'],
             'SIMPAN_REFLEKSI' => ['label' => 'Simpan Refleksi', 'icon' => 'fa-lightbulb', 'badge_class' => 'badge-log-warning'],
             'USER_CREATE' => ['label' => 'Buat Akun', 'icon' => 'fa-user-shield', 'badge_class' => 'badge-log-success'],
@@ -353,24 +429,50 @@ class ActivityLogService
      */
     public function getStats(): array
     {
-        $total = (int)$this->pdo->query('SELECT COUNT(*) FROM activity_log')->fetchColumn();
-        $totalCapped = min(self::MAX_CAP, $total);
+        $queryStats = function (): array {
+            $total = (int)$this->pdo->query('SELECT COUNT(*) FROM activity_log')->fetchColumn();
+            $totalCapped = min(self::MAX_CAP, $total);
 
-        $today = (int)$this->pdo->query("SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = CURDATE()")->fetchColumn();
+            $today = (int)$this->pdo->query("SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = CURDATE()")->fetchColumn();
 
-        $topUserStmt = $this->pdo->query("SELECT user_nama, COUNT(*) as cnt FROM activity_log WHERE user_nama IS NOT NULL AND user_nama != '' GROUP BY user_nama ORDER BY cnt DESC LIMIT 1");
-        $topUserRow = $topUserStmt->fetch();
-        $topUser = $topUserRow ? $topUserRow['user_nama'] : '-';
+            $topUserStmt = $this->pdo->query("SELECT user_nama, COUNT(*) as cnt FROM activity_log WHERE user_nama IS NOT NULL AND user_nama != '' GROUP BY user_nama ORDER BY cnt DESC LIMIT 1");
+            $topUserRow = $topUserStmt->fetch();
+            $topUser = $topUserRow ? $topUserRow['user_nama'] : '-';
 
-        $topActionStmt = $this->pdo->query("SELECT action, COUNT(*) as cnt FROM activity_log GROUP BY action ORDER BY cnt DESC LIMIT 1");
-        $topActionRow = $topActionStmt->fetch();
-        $topAction = $topActionRow ? ucwords(strtolower(str_replace('_', ' ', $topActionRow['action']))) : '-';
+            $topActionStmt = $this->pdo->query("SELECT action, COUNT(*) as cnt FROM activity_log GROUP BY action ORDER BY cnt DESC LIMIT 1");
+            $topActionRow = $topActionStmt->fetch();
+            $topAction = $topActionRow ? ucwords(strtolower(str_replace('_', ' ', $topActionRow['action']))) : '-';
+
+            return [
+                'total' => $totalCapped,
+                'today' => $today,
+                'top_user' => $topUser,
+                'top_action' => $topAction,
+            ];
+        };
+
+        try {
+            return $queryStats();
+        } catch (PDOException $e) {
+            if ($this->isMissingTableException($e) && !self::$tableVerified) {
+                $this->ensureTable();
+                try {
+                    return $queryStats();
+                } catch (Throwable $retryEx) {
+                    error_log('[ActivityLogService::getStats] ' . $retryEx->getMessage());
+                }
+            } else {
+                error_log('[ActivityLogService::getStats] ' . $e->getMessage());
+            }
+        } catch (Throwable $e) {
+            error_log('[ActivityLogService::getStats] ' . $e->getMessage());
+        }
 
         return [
-            'total' => $totalCapped,
-            'today' => $today,
-            'top_user' => $topUser,
-            'top_action' => $topAction,
+            'total' => 0,
+            'today' => 0,
+            'top_user' => '-',
+            'top_action' => '-',
         ];
     }
 
@@ -383,8 +485,22 @@ class ActivityLogService
             $this->pdo->exec('TRUNCATE TABLE activity_log');
             self::log('LOG_RESET', 'Seluruh riwayat activity log telah dibersihkan oleh Owner', 'warning');
             return true;
+        } catch (PDOException $e) {
+            if ($this->isMissingTableException($e) && !self::$tableVerified) {
+                $this->ensureTable();
+                try {
+                    $this->pdo->exec('TRUNCATE TABLE activity_log');
+                    self::log('LOG_RESET', 'Seluruh riwayat activity log telah dibersihkan oleh Owner', 'warning');
+                    return true;
+                } catch (Throwable $retryEx) {
+                    error_log('[ActivityLogService::clearLogs] ' . $retryEx->getMessage());
+                    return false;
+                }
+            }
+            error_log('[ActivityLogService::clearLogs] ' . $e->getMessage());
+            return false;
         } catch (Throwable $e) {
-            error_log("ActivityLogService::clearLogs Error: " . $e->getMessage());
+            error_log('[ActivityLogService::clearLogs] ' . $e->getMessage());
             return false;
         }
     }
@@ -395,7 +511,16 @@ class ActivityLogService
     public function seedInitialLogsIfEmpty(): void
     {
         try {
-            $count = (int)$this->pdo->query('SELECT COUNT(*) FROM activity_log')->fetchColumn();
+            try {
+                $count = (int)$this->pdo->query('SELECT COUNT(*) FROM activity_log')->fetchColumn();
+            } catch (PDOException $e) {
+                if ($this->isMissingTableException($e) && !self::$tableVerified) {
+                    $this->ensureTable();
+                    $count = (int)$this->pdo->query('SELECT COUNT(*) FROM activity_log')->fetchColumn();
+                } else {
+                    throw $e;
+                }
+            }
             if ($count > 0) {
                 return;
             }

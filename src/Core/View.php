@@ -45,4 +45,9 @@ class View
     {
         self::render($template, $data, false);
     }
+
+    public static function e(?string $val): string
+    {
+        return htmlspecialchars((string)($val ?? ''), ENT_QUOTES, 'UTF-8');
+    }
 }

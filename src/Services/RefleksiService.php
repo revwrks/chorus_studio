@@ -158,12 +158,14 @@ class RefleksiService
                 'id' => $newId,
             ];
         } catch (PDOException $e) {
+            error_log('[RefleksiService::create] ' . $e->getMessage());
             if ($e->getCode() == 23000 || strpos($e->getMessage(), 'unik_murid_bulan') !== false) {
                 return ['success' => false, 'message' => 'Gagal menyimpan: Refleksi untuk murid ini pada bulan dan tahun tersebut sudah pernah dibuat.'];
             }
-            return ['success' => false, 'message' => 'Gagal memproses refleksi: ' . $e->getMessage()];
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat menyimpan refleksi. Silakan coba lagi.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[RefleksiService::create] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 
@@ -208,12 +210,14 @@ class RefleksiService
 
             return ['success' => true, 'message' => "Refleksi untuk '$muridNama' berhasil diperbarui."];
         } catch (PDOException $e) {
+            error_log('[RefleksiService::update] ' . $e->getMessage());
             if ($e->getCode() == 23000 || strpos($e->getMessage(), 'unik_murid_bulan') !== false) {
                 return ['success' => false, 'message' => 'Gagal menyimpan: Refleksi untuk murid ini pada bulan dan tahun tersebut sudah pernah dibuat.'];
             }
-            return ['success' => false, 'message' => 'Gagal memperbarui refleksi: ' . $e->getMessage()];
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat memperbarui refleksi. Silakan coba lagi.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[RefleksiService::update] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 
@@ -234,9 +238,11 @@ class RefleksiService
 
             return ['success' => true, 'message' => "Refleksi untuk '{$ref['murid_nama']}' berhasil dihapus."];
         } catch (PDOException $e) {
-            return ['success' => false, 'message' => 'Gagal menghapus data refleksi: ' . $e->getMessage()];
+            error_log('[RefleksiService::delete] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat menghapus data refleksi. Silakan coba lagi.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[RefleksiService::delete] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 }

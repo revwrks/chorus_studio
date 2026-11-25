@@ -96,7 +96,8 @@ class RencanaPertemuanService
                 'target' => $targetPertemuan
             ];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Gagal menyimpan rencana pertemuan: ' . $e->getMessage()];
+            error_log('[RencanaPertemuanService::setTarget] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat menyimpan rencana pertemuan. Silakan coba lagi.'];
         }
     }
 
@@ -108,6 +109,12 @@ class RencanaPertemuanService
     {
         if (empty($items)) {
             return ['success' => false, 'message' => 'Tidak ada data target yang dikirim.'];
+        }
+        if ($tahun < 2000 || $tahun > 2100) {
+            return ['success' => false, 'message' => 'Tahun tidak valid.'];
+        }
+        if ($bulan < 1 || $bulan > 12) {
+            return ['success' => false, 'message' => 'Bulan tidak valid.'];
         }
 
         try {
@@ -148,7 +155,8 @@ class RencanaPertemuanService
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            return ['success' => false, 'message' => 'Gagal menyimpan data rencana pertemuan: ' . $e->getMessage()];
+            error_log('[RencanaPertemuanService::batchSetTarget] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat menyimpan data rencana pertemuan. Silakan coba lagi.'];
         }
     }
 

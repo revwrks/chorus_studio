@@ -28,10 +28,11 @@ class Auth
         // Security headers
         if (!headers_sent()) {
             header("X-Content-Type-Options: nosniff");
-            header("X-Frame-Options: SAMEORIGIN");
+            header("X-Frame-Options: DENY");
             header("X-XSS-Protection: 1; mode=block");
             header("Referrer-Policy: strict-origin-when-cross-origin");
-            header("Content-Security-Policy: default-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://errors.infinityfree.net; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: blob: https:; frame-ancestors 'none';");
+            header("Permissions-Policy: camera=(), microphone=(), geolocation=()");
+            header("Content-Security-Policy: default-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: blob: https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';");
         }
     }
 
@@ -51,12 +52,13 @@ class Auth
     public static function verifyCsrf(): void
     {
         if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-            $token = $_POST['csrf_token'] ?? '';
+            $token = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
             if (empty($token) || !hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
                 $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
                        || (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false)
                        || isset($_POST['is_ajax']);
                 if ($isAjax) {
+                    http_response_code(403);
                     header('Content-Type: application/json; charset=utf-8');
                     echo json_encode([
                         'success' => false, 
@@ -106,7 +108,7 @@ class Auth
 
     public static function currentUserRole(): string
     {
-        return $_SESSION['admin_role'] ?? 'admin';
+        return $_SESSION['admin_role'] ?? '';
     }
 
     public static function currentUserName(): string
@@ -153,7 +155,7 @@ class Auth
         }
 
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT m.id, m.nama, m.instagram, m.foto 
+        $stmt = $pdo->prepare('SELECT m.id, m.nama, m.instagram, m.foto, m.status 
                                FROM orang_tua_murid otm
                                JOIN murid m ON otm.id_murid = m.id
                                WHERE otm.id_orang_tua = ?
@@ -215,6 +217,7 @@ class Auth
                    || (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false)
                    || isset($_POST['is_ajax']);
             if ($isAjax) {
+                http_response_code(401);
                 header('Content-Type: application/json; charset=utf-8');
                 echo json_encode(['success' => false, 'message' => 'Sesi Anda telah berakhir. Silakan muat ulang dan login kembali.']);
                 exit;
@@ -233,11 +236,11 @@ class Auth
                    || (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false)
                    || isset($_POST['is_ajax']);
             if ($isAjax) {
+                http_response_code(403);
                 header('Content-Type: application/json; charset=utf-8');
                 echo json_encode(['success' => false, 'message' => 'Akses ditolak. Anda tidak memiliki izin untuk tindakan ini.']);
                 exit;
             }
-            http_response_code(403);
             header('Location: ' . self::baseRedirectUrl('error.php?code=403'));
             exit;
         }
@@ -247,9 +250,22 @@ class Auth
     {
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
-            setcookie(session_name(), '', time() - 42000, '/');
+            $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                    || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+                    || (!empty($_SERVER['HTTP_FRONT_END_HTTPS']) && $_SERVER['HTTP_FRONT_END_HTTPS'] !== 'off')
+                    || (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
+
+            setcookie(session_name(), '', [
+                'expires' => time() - 42000,
+                'path' => '/',
+                'secure' => $isHttps,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
         }
-        session_destroy();
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 <?php
 namespace App\Controllers;
 
+use App\Core\Auth;
 use App\Core\BaseController;
 use App\Services\AdminService;
 use App\Services\MuridService;
@@ -51,6 +52,7 @@ class AdminController extends BaseController
         $this->verifyCsrf();
         $action = $_POST['action'] ?? '';
         $isAjax = $this->isAjax();
+        $actorRole = Auth::currentUserRole();
 
         if ($action === 'create') {
             $muridIds = isset($_POST['murid_ids']) && is_array($_POST['murid_ids']) ? array_map('intval', $_POST['murid_ids']) : [];
@@ -59,7 +61,8 @@ class AdminController extends BaseController
                 $_POST['nama'] ?? '',
                 $_POST['password'] ?? '',
                 $_POST['role'] ?? 'admin',
-                $muridIds
+                $muridIds,
+                $actorRole
             );
             if ($isAjax) {
                 $this->json(['success' => $res['success'], 'message' => $res['message'], 'action' => 'create']);
@@ -77,7 +80,8 @@ class AdminController extends BaseController
                 $_POST['nama'] ?? '',
                 !empty($_POST['password']) ? $_POST['password'] : null,
                 $_POST['role'] ?? 'admin',
-                $muridIds
+                $muridIds,
+                $actorRole
             );
             if ($isAjax) {
                 $this->json(['success' => $res['success'], 'message' => $res['message'], 'action' => 'update']);
@@ -88,7 +92,7 @@ class AdminController extends BaseController
 
         if ($action === 'delete') {
             $id = (int)($_POST['id'] ?? 0);
-            $res = $this->adminService->delete($id, $currentId);
+            $res = $this->adminService->delete($id, (int)$currentId, $actorRole);
             if ($isAjax) {
                 $this->json(['success' => $res['success'], 'message' => $res['message'], 'action' => 'delete']);
             }

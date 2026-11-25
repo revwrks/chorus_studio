@@ -108,6 +108,7 @@ class LaguService
             $stmt = $this->pdo->prepare('INSERT INTO lagu (judul, youtube_link, iringan_link, tingkat) VALUES (?, ?, ?, ?)');
             $stmt->execute([$judul, $youtubeLink, $iringanLink, $tingkat]);
             $newId = (int)$this->pdo->lastInsertId();
+            ActivityLogService::log('TAMBAH_LAGU', "Menambahkan lagu baru: '$judul' (Tingkat: $tingkat)", 'success');
 
             return [
                 'success' => true,
@@ -115,9 +116,11 @@ class LaguService
                 'id' => $newId,
             ];
         } catch (PDOException $e) {
-            return ['success' => false, 'message' => 'Gagal memproses data lagu: ' . $e->getMessage()];
+            error_log('[LaguService::create] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat menyimpan data lagu. Silakan coba lagi.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[LaguService::create] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 
@@ -135,12 +138,15 @@ class LaguService
         try {
             $stmt = $this->pdo->prepare('UPDATE lagu SET judul=?, youtube_link=?, iringan_link=?, tingkat=? WHERE id_lagu=?');
             $stmt->execute([$judul, $youtubeLink, $iringanLink, $tingkat, $id]);
+            ActivityLogService::log('EDIT_LAGU', "Memperbarui data lagu: '$judul' (ID: $id)", 'info');
 
             return ['success' => true, 'message' => "Lagu '$judul' berhasil diperbarui."];
         } catch (PDOException $e) {
-            return ['success' => false, 'message' => 'Gagal memperbarui data lagu: ' . $e->getMessage()];
+            error_log('[LaguService::update] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat memperbarui data lagu. Silakan coba lagi.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[LaguService::update] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 
@@ -158,12 +164,15 @@ class LaguService
 
             $stmt = $this->pdo->prepare('DELETE FROM lagu WHERE id_lagu=?');
             $stmt->execute([$id]);
+            ActivityLogService::log('HAPUS_LAGU', "Menghapus lagu: '{$lagu['judul']}' (ID: $id)", 'danger');
 
             return ['success' => true, 'message' => "Lagu '{$lagu['judul']}' berhasil dihapus."];
         } catch (PDOException $e) {
-            return ['success' => false, 'message' => 'Gagal menghapus lagu karena masih terkait dengan data lain: ' . $e->getMessage()];
+            error_log('[LaguService::delete] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Gagal menghapus lagu karena masih terkait dengan data lain atau kendala database.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[LaguService::delete] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 }

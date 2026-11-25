@@ -48,11 +48,6 @@ $errorInfo = [
     ]
 ][$code];
 
-$customMsg = trim($_GET['msg'] ?? '');
-if ($customMsg !== '') {
-    $errorInfo['message'] = htmlspecialchars($customMsg, ENT_QUOTES, 'UTF-8');
-}
-
 $styleVersion = @filemtime(__DIR__ . '/style/main.css') ?: time();
 $faviconVersion = @filemtime(__DIR__ . '/favicon.ico') ?: $styleVersion;
 $logoVersion = @filemtime(__DIR__ . '/assets/img/logo.png') ?: $styleVersion;
@@ -62,17 +57,19 @@ $logoVersion = @filemtime(__DIR__ . '/assets/img/logo.png') ?: $styleVersion;
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title><?= htmlspecialchars($errorInfo['title']) ?> - Chorus Studio</title>
+    <title><?= htmlspecialchars($errorInfo['title'], ENT_QUOTES, 'UTF-8') ?> - Chorus Studio</title>
     <link rel="icon" href="favicon.ico?v=<?= urlencode((string)$faviconVersion) ?>" type="image/x-icon">
     <script>
         (function() {
             try {
                 var t = localStorage.getItem('chorus_theme') || 'light';
-                document.documentElement.classList.add(t === 'dark' ? 'theme-dark' : 'theme-light');
+                var isDark = t === 'dark';
+                document.documentElement.classList.add(isDark ? 'theme-dark' : 'theme-light');
+                document.documentElement.setAttribute('data-bs-theme', isDark ? 'dark' : 'light');
             } catch (e) {}
         })();
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="style/main.css?v=<?= urlencode((string)$styleVersion) ?>" rel="stylesheet">
@@ -87,13 +84,12 @@ $logoVersion = @filemtime(__DIR__ . '/assets/img/logo.png') ?: $styleVersion;
         .error-card {
             max-width: 540px;
             width: 100%;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
+            background: var(--card-solid);
+            border: 1px solid var(--card-border);
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-lg);
             padding: 2.5rem;
             text-align: center;
-            animation: fadeIn 0.3s ease;
         }
         .error-icon-box {
             width: 80px;
@@ -126,7 +122,7 @@ $logoVersion = @filemtime(__DIR__ . '/assets/img/logo.png') ?: $styleVersion;
             color: var(--text);
         }
         .error-desc {
-            color: var(--text-muted);
+            color: var(--muted);
             font-size: 0.95rem;
             line-height: 1.6;
             margin-bottom: 2rem;
@@ -141,7 +137,7 @@ $logoVersion = @filemtime(__DIR__ . '/assets/img/logo.png') ?: $styleVersion;
                     <img src="assets/img/logo.png?v=<?= urlencode((string)$logoVersion) ?>" width="28" height="28" alt="Logo" class="me-2">
                     <span class="brand-text" style="font-size:1.1rem;font-weight:700;">Chorus Studio</span>
                 </div>
-                <button id="themeToggle" class="btn btn-sm btn-outline-secondary" title="Ganti Tema">
+                <button id="themeToggle" type="button" class="btn btn-sm btn-outline-secondary" title="Ganti Tema" aria-label="Ganti Tema Warna">
                     <i id="themeIcon" class="fa fa-moon"></i>
                 </button>
             </div>
@@ -154,8 +150,8 @@ $logoVersion = @filemtime(__DIR__ . '/assets/img/logo.png') ?: $styleVersion;
                 <span class="error-code-badge">Kode HTTP: <?= $code ?></span>
             </div>
 
-            <h2 class="error-title"><?= htmlspecialchars($errorInfo['title']) ?></h2>
-            <p class="error-desc"><?= $errorInfo['message'] ?></p>
+            <h2 class="error-title"><?= htmlspecialchars($errorInfo['title'], ENT_QUOTES, 'UTF-8') ?></h2>
+            <p class="error-desc"><?= htmlspecialchars($errorInfo['message'], ENT_QUOTES, 'UTF-8') ?></p>
 
             <div class="d-flex gap-2 justify-content-center flex-wrap">
                 <?php if (is_logged_in()): ?>
@@ -182,9 +178,11 @@ $logoVersion = @filemtime(__DIR__ . '/assets/img/logo.png') ?: $styleVersion;
             const root = document.documentElement;
 
             function applyTheme(t) {
+                const isDark = t === 'dark';
                 root.classList.remove('theme-light', 'theme-dark');
-                root.classList.add(t === 'dark' ? 'theme-dark' : 'theme-light');
-                if (icon) icon.className = (t === 'dark') ? 'fa fa-sun' : 'fa fa-moon';
+                root.classList.add(isDark ? 'theme-dark' : 'theme-light');
+                root.setAttribute('data-bs-theme', isDark ? 'dark' : 'light');
+                if (icon) icon.className = isDark ? 'fa fa-sun' : 'fa fa-moon';
             }
 
             let theme = localStorage.getItem('chorus_theme') || 'light';

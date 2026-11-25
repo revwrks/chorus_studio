@@ -24,13 +24,46 @@ class AuthController extends BaseController
 
         $err = '';
         if ($this->isPost()) {
-            if (isset($_SESSION['login_lockout_time']) && $_SESSION['login_lockout_time'] > time()) {
-                $remaining = $_SESSION['login_lockout_time'] - time();
+            $this->verifyCsrf();
+
+            $username = trim($_POST['username'] ?? '');
+            $password = $_POST['password'] ?? '';
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+            $rateKey = hash('sha256', $ip . '|' . strtolower(trim($username)));
+            $now = time();
+
+            $rateDir = dirname(__DIR__, 2) . '/tmp/ratelimit';
+            if (!is_dir($rateDir)) {
+                @mkdir($rateDir, 0750, true);
+            }
+            $useFileLimiter = is_dir($rateDir) && is_writable($rateDir);
+            $rateFile = $rateDir . '/' . $rateKey . '.json';
+
+            if ($useFileLimiter && mt_rand(1, 20) === 1) {
+                foreach (glob($rateDir . '/*.json') ?: [] as $oldFile) {
+                    if (is_file($oldFile) && (@filemtime($oldFile) ?: $now) < ($now - 3600)) {
+                        @unlink($oldFile);
+                    }
+                }
+            }
+
+            $rateState = ['attempts' => 0, 'first_attempt' => 0, 'lockout_until' => 0];
+            if ($useFileLimiter && is_file($rateFile)) {
+                $decoded = json_decode((string)@file_get_contents($rateFile), true);
+                if (is_array($decoded)) {
+                    $rateState = array_merge($rateState, $decoded);
+                }
+            } elseif (!$useFileLimiter && isset($_SESSION['login_rate'][$rateKey]) && is_array($_SESSION['login_rate'][$rateKey])) {
+                $rateState = array_merge($rateState, $_SESSION['login_rate'][$rateKey]);
+            }
+
+            if ((int)$rateState['lockout_until'] > $now) {
+                $remaining = (int)$rateState['lockout_until'] - $now;
                 $err = 'Terlalu banyak percobaan login gagal. Silakan coba lagi dalam ' . $remaining . ' detik.';
             } else {
-                $this->verifyCsrf();
-                $username = trim($_POST['username'] ?? '');
-                $password = $_POST['password'] ?? '';
+                if ((int)$rateState['first_attempt'] > 0 && ($now - (int)$rateState['first_attempt']) > 300) {
+                    $rateState = ['attempts' => 0, 'first_attempt' => 0, 'lockout_until' => 0];
+                }
 
                 $cleanInput = preg_replace('/[\s_\-]+/', '', strtolower($username));
                 $stmt = $this->pdo->prepare('SELECT * FROM admin WHERE username = ? OR REPLACE(LOWER(username), " ", "") = ? LIMIT 1');
@@ -50,20 +83,36 @@ class AuthController extends BaseController
                         $_SESSION['active_murid_id'] = (int)$stmtKids->fetchColumn() ?: null;
                     }
 
-                    unset($_SESSION['login_attempts']);
-                    unset($_SESSION['login_lockout_time']);
+                    if ($useFileLimiter && is_file($rateFile)) {
+                        @unlink($rateFile);
+                    }
+                    unset($_SESSION['login_rate'][$rateKey], $_SESSION['login_attempts'], $_SESSION['login_lockout_time']);
 
                     ActivityLogService::log('LOGIN', 'Pengguna ' . ($a['nama'] ?: $a['username']) . ' (' . $a['username'] . ') berhasil login ke sistem', 'info', (int)$a['id'], $a['nama'] ?: $a['username'], $a['role'] ?? 'admin');
 
                     $this->redirect('index.php');
                 } else {
-                    $_SESSION['login_attempts'] = ($_SESSION['login_attempts'] ?? 0) + 1;
-                    ActivityLogService::log('LOGIN_GAGAL', 'Percobaan login gagal untuk username: ' . $username, 'danger', null, $username, 'guest');
-                    if ($_SESSION['login_attempts'] >= 5) {
-                        $_SESSION['login_lockout_time'] = time() + 120;
-                        $err = 'Terlalu banyak percobaan login gagal. Anda diblokir selama 2 menit.';
+                    if ((int)$rateState['attempts'] === 0 || ($now - (int)$rateState['first_attempt']) > 300) {
+                        $rateState['first_attempt'] = $now;
+                        $rateState['attempts'] = 1;
                     } else {
-                        $err = 'Login gagal. Sisa percobaan: ' . (5 - $_SESSION['login_attempts']);
+                        $rateState['attempts'] = (int)$rateState['attempts'] + 1;
+                    }
+                    $rateState['lockout_until'] = 0;
+
+                    ActivityLogService::log('LOGIN_GAGAL', 'Percobaan login gagal untuk username: ' . $username, 'danger', null, $username, 'guest');
+
+                    if ($rateState['attempts'] >= 5) {
+                        $rateState['lockout_until'] = $now + 300;
+                        $err = 'Terlalu banyak percobaan login gagal. Anda diblokir selama 5 menit.';
+                    } else {
+                        $err = 'Login gagal. Sisa percobaan: ' . (5 - $rateState['attempts']);
+                    }
+
+                    if ($useFileLimiter) {
+                        @file_put_contents($rateFile, json_encode($rateState), LOCK_EX);
+                    } else {
+                        $_SESSION['login_rate'][$rateKey] = $rateState;
                     }
                 }
             }
@@ -78,6 +127,13 @@ class AuthController extends BaseController
 
     public function logout(): void
     {
+        if (!$this->isPost()) {
+            if (Auth::isLoggedIn()) {
+                $this->redirect('index.php');
+            }
+            $this->redirect('login.php');
+        }
+        $this->verifyCsrf();
         Auth::logout();
         $this->redirect('login.php');
     }

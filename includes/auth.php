@@ -116,3 +116,10 @@ function logout(): void
 {
     Auth::logout();
 }
+
+if (!function_exists('e')) {
+    function e(?string $val): string
+    {
+        return htmlspecialchars((string)($val ?? ''), ENT_QUOTES, 'UTF-8');
+    }
+}

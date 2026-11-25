@@ -84,6 +84,7 @@ class RencanaPertemuanController extends BaseController
             'bulanDipilih' => $bulanDipilih,
             'isCoach' => $isCoach,
             'coachId' => $coachId,
+            'currentUserId' => $coachId,
             'periodData' => $periodData,
             'curPeriod' => $curPeriod,
             'nextPeriod' => $nextPeriod,
@@ -103,7 +104,7 @@ class RencanaPertemuanController extends BaseController
         $mId = (int)($_GET['murid_id'] ?? 0);
         $reqTahun = isset($_GET['tahun']) ? (int)$_GET['tahun'] : $tahunDipilih;
         $reqBulan = isset($_GET['bulan']) ? (int)$_GET['bulan'] : $bulanDipilih;
-        $reqCoachScope = (isset($_GET['coach_scope']) && $_GET['coach_scope'] === '1' && $isCoach) ? $coachId : null;
+        $reqCoachScope = $isCoach ? $coachId : null;
 
         $murid = $this->muridService->getById($mId);
         if (!$murid) {
@@ -142,12 +143,15 @@ class RencanaPertemuanController extends BaseController
 
         $postTahun = isset($_POST['tahun']) ? (int)$_POST['tahun'] : $tahunDipilih;
         $postBulan = isset($_POST['bulan']) ? (int)$_POST['bulan'] : $bulanDipilih;
+        $isCoach = Auth::isCoach();
 
         if ($action === 'save_single') {
             $idMurid = (int)($_POST['id_murid'] ?? 0);
             $target = max(0, (int)($_POST['target_pertemuan'] ?? 4));
             $catatan = $_POST['catatan'] ?? null;
-            $targetCoach = !empty($_POST['coach_id']) ? (int)$_POST['coach_id'] : $coachId;
+            $targetCoach = $isCoach
+                ? $coachId
+                : (!empty($_POST['coach_id']) ? (int)$_POST['coach_id'] : $coachId);
 
             $res = $this->rencanaService->setTarget($idMurid, $postTahun, $postBulan, $target, $catatan, $targetCoach);
             if ($isAjax) {
@@ -166,11 +170,14 @@ class RencanaPertemuanController extends BaseController
             foreach ($targets as $mId => $targetVal) {
                 $mId = (int)$mId;
                 if ($mId <= 0) continue;
+                $itemCoachId = $isCoach
+                    ? $coachId
+                    : (!empty($coaches[$mId]) ? (int)$coaches[$mId] : $coachId);
                 $items[] = [
                     'id_murid' => $mId,
                     'target_pertemuan' => max(0, (int)$targetVal),
                     'catatan' => $catatans[$mId] ?? null,
-                    'coach_id' => !empty($coaches[$mId]) ? (int)$coaches[$mId] : $coachId,
+                    'coach_id' => $itemCoachId,
                 ];
             }
 

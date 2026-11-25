@@ -90,8 +90,8 @@ class PertemuanService
         }
 
         $tanggal = trim($tanggal);
-        if (empty($tanggal) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggal)) {
-            return ['success' => false, 'message' => 'Format tanggal tidak valid. Gunakan format YYYY-MM-DD.'];
+        if (empty($tanggal) || !preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $tanggal, $m) || !checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
+            return ['success' => false, 'message' => 'Format tanggal tidak valid. Gunakan format YYYY-MM-DD yang benar.'];
         }
 
         if ($idLagu !== null && $idLagu > 0) {
@@ -117,9 +117,11 @@ class PertemuanService
                 'id' => $newId,
             ];
         } catch (PDOException $e) {
-            return ['success' => false, 'message' => 'Gagal memproses data pertemuan: ' . $e->getMessage()];
+            error_log('[PertemuanService::create] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat menyimpan data pertemuan. Silakan coba lagi.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[PertemuanService::create] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 
@@ -134,8 +136,8 @@ class PertemuanService
         }
 
         $tanggal = trim($tanggal);
-        if (empty($tanggal) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggal)) {
-            return ['success' => false, 'message' => 'Format tanggal tidak valid. Gunakan format YYYY-MM-DD.'];
+        if (empty($tanggal) || !preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $tanggal, $m) || !checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
+            return ['success' => false, 'message' => 'Format tanggal tidak valid. Gunakan format YYYY-MM-DD yang benar.'];
         }
 
         $meeting = $this->getById($id);
@@ -170,9 +172,11 @@ class PertemuanService
 
             return ['success' => true, 'message' => 'Catatan pertemuan berhasil diperbarui.'];
         } catch (PDOException $e) {
-            return ['success' => false, 'message' => 'Gagal memperbarui data pertemuan: ' . $e->getMessage()];
+            error_log('[PertemuanService::update] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat memperbarui data pertemuan. Silakan coba lagi.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[PertemuanService::update] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 
@@ -203,9 +207,11 @@ class PertemuanService
 
             return ['success' => true, 'message' => 'Data pertemuan berhasil dihapus.'];
         } catch (PDOException $e) {
-            return ['success' => false, 'message' => 'Gagal menghapus data pertemuan: ' . $e->getMessage()];
+            error_log('[PertemuanService::delete] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat menghapus data pertemuan. Silakan coba lagi.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[PertemuanService::delete] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 

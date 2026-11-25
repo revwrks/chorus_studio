@@ -185,6 +185,7 @@ class IringanService
             $stmt = $this->pdo->prepare('INSERT INTO iringan_murid (id_murid, id_lagu, judul_iringan, kategori, gdrive_link, catatan, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([$idMurid, $idLagu, $judulIringan, $kategori, $gdriveLink, trim($catatan), $createdBy]);
             $newId = (int)$this->pdo->lastInsertId();
+            ActivityLogService::log('TAMBAH_IRINGAN', "Menambahkan lagu iringan '$judulIringan' untuk '$muridNama'", 'success');
 
             return [
                 'success' => true,
@@ -192,9 +193,11 @@ class IringanService
                 'id' => $newId,
             ];
         } catch (PDOException $e) {
-            return ['success' => false, 'message' => 'Gagal memproses data iringan: ' . $e->getMessage()];
+            error_log('[IringanService::create] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat menyimpan data iringan. Silakan coba lagi.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[IringanService::create] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 
@@ -217,12 +220,15 @@ class IringanService
         try {
             $stmt = $this->pdo->prepare('UPDATE iringan_murid SET id_murid = ?, id_lagu = ?, judul_iringan = ?, kategori = ?, gdrive_link = ?, catatan = ? WHERE id = ?');
             $stmt->execute([$idMurid, $idLagu, $judulIringan, $kategori, $gdriveLink, trim($catatan), $id]);
+            ActivityLogService::log('EDIT_IRINGAN', "Memperbarui lagu iringan '$judulIringan' (ID: $id)", 'info');
 
             return ['success' => true, 'message' => "Lagu iringan '$judulIringan' berhasil diperbarui."];
         } catch (PDOException $e) {
-            return ['success' => false, 'message' => 'Gagal memperbarui data iringan: ' . $e->getMessage()];
+            error_log('[IringanService::update] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat memperbarui data iringan. Silakan coba lagi.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[IringanService::update] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 
@@ -240,12 +246,15 @@ class IringanService
         try {
             $stmtDelete = $this->pdo->prepare('DELETE FROM iringan_murid WHERE id = ?');
             $stmtDelete->execute([$id]);
+            ActivityLogService::log('HAPUS_IRINGAN', "Menghapus lagu iringan '{$item['judul_iringan']}' untuk '{$item['murid_nama']}'", 'danger');
 
             return ['success' => true, 'message' => "Lagu iringan '{$item['judul_iringan']}' untuk '{$item['murid_nama']}' berhasil dihapus."];
         } catch (PDOException $e) {
-            return ['success' => false, 'message' => 'Gagal menghapus lagu iringan: ' . $e->getMessage()];
+            error_log('[IringanService::delete] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat menghapus lagu iringan. Silakan coba lagi.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[IringanService::delete] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 }

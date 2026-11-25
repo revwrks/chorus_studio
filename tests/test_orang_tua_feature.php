@@ -1,4 +1,8 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
 /**
  * Test Suite: Fitur Akses Orang Tua Chorus Studio
  * Tests schema, account creation, child link, auth permissions, and accompaniment data.

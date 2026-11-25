@@ -54,12 +54,19 @@ class DashboardController extends BaseController
     private function handleRealisasiDetailAjax(): void
     {
         $mId = (int)($_GET['murid_id'] ?? 0);
+        if (Auth::isOrangTua()) {
+            $allowedIds = array_map('intval', array_column(Auth::getOrangTuaAnakList(), 'id'));
+            if (!in_array($mId, $allowedIds, true)) {
+                $this->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            }
+        }
+
         $bulanDipilih = isset($_GET['bulan']) ? intval($_GET['bulan']) : (int)date('n');
         $tahunDipilih = isset($_GET['tahun']) ? intval($_GET['tahun']) : (int)date('Y');
         $reqTahun = isset($_GET['tahun']) ? (int)$_GET['tahun'] : $tahunDipilih;
         $reqBulan = isset($_GET['bulan']) ? (int)$_GET['bulan'] : $bulanDipilih;
-        $isCoach = $this->currentUserRole() === 'coach';
-        $reqCoachScope = (isset($_GET['coach_scope']) && $_GET['coach_scope'] === '1' && $isCoach) ? $this->currentUserId() : null;
+        $coachScope = Auth::isCoach();
+        $reqCoachScope = $coachScope ? $this->currentUserId() : null;
 
         $murid = $this->muridService->getById($mId);
         if (!$murid) {
@@ -278,8 +285,15 @@ class DashboardController extends BaseController
         $totalMuridCount = $this->muridService->count();
         $activeMuridCount = 0;
         try {
-            $activeMuridCount = (int)$this->pdo->query("SELECT COUNT(*) FROM murid WHERE status = 'Aktif'")->fetchColumn();
+            $activeMuridCount = (int)$this->pdo->query("SELECT COUNT(*) FROM murid WHERE LOWER(status) = 'aktif'")->fetchColumn();
         } catch (Throwable $e) {}
+
+        $coachCount = 0;
+        try {
+            $coachCount = (int)$this->pdo->query("SELECT COUNT(*) FROM admin WHERE role IN ('coach','owner')")->fetchColumn();
+        } catch (Throwable $e) {}
+
+        $rencanaSummary = $this->rencanaService->getSummary($tahunDipilih, $bulanDipilih, null);
 
         // Fetch coach rows
         $stmtCoach = $this->pdo->prepare("SELECT a.id, COALESCE(NULLIF(a.nama,''), a.username) as nama,
@@ -327,11 +341,14 @@ class DashboardController extends BaseController
             'bulanDipilih' => $bulanDipilih,
             'tahunMulai' => $tahunMulai,
             'tahunSekarang' => $tahunSekarang,
+            'tahunList' => $staffAvailableYears,
             'staffAvailableYears' => $staffAvailableYears,
             'staffAvailableMonthsByYear' => $staffAvailableMonthsByYear,
             'staffAvailableMonthsForYear' => $staffAvailableMonthsForYear,
             'totalMuridCount' => $totalMuridCount,
             'activeMuridCount' => $activeMuridCount,
+            'coachCount' => $coachCount,
+            'rencanaSummary' => $rencanaSummary,
             'rencanaService' => $this->rencanaService,
             'coachRows' => $coachRows,
             'detailByCoach' => $detailByCoach,

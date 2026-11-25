@@ -1,4 +1,8 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
 /**
  * Test Suite for:
  * 1. Filtering Data on Murid, Lagu, Iringan, Pertemuan, Admin
@@ -27,7 +31,7 @@ $laguHtml = file_exists(__DIR__ . '/../views/lagu/index.php') ? file_get_content
 $iringanHtml = file_exists(__DIR__ . '/../views/iringan/index.php') ? file_get_contents(__DIR__ . '/../views/iringan/index.php') : file_get_contents(__DIR__ . '/../iringan.php');
 $pertemuanHtml = file_exists(__DIR__ . '/../views/pertemuan/index.php') ? file_get_contents(__DIR__ . '/../views/pertemuan/index.php') : file_get_contents(__DIR__ . '/../pertemuan.php');
 $adminHtml = file_exists(__DIR__ . '/../views/admin/index.php') ? file_get_contents(__DIR__ . '/../views/admin/index.php') : file_get_contents(__DIR__ . '/../admin.php');
-$footerHtml = file_get_contents(__DIR__ . '/../includes/footer.php');
+$footerHtml = file_get_contents(__DIR__ . '/../includes/footer.php') . "\n" . file_get_contents(__DIR__ . '/../assets/js/app.js');
 $cssContent = file_get_contents(__DIR__ . '/../style/main.css');
 
 echo "--- 1. Testing Filtering Markup on All Pages ---\n";

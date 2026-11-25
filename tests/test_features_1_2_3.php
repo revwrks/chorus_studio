@@ -1,4 +1,8 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
 /**
  * Test Suite for:
  * Fitur 1: Client-side Instant Live Search & Multi-Filter + Live Counter
@@ -67,7 +71,7 @@ $muridHtml = file_exists(__DIR__ . '/../views/murid/index.php') ? file_get_conte
 $laguHtml = file_exists(__DIR__ . '/../views/lagu/index.php') ? file_get_contents(__DIR__ . '/../views/lagu/index.php') : file_get_contents(__DIR__ . '/../lagu.php');
 $iringanHtml = file_exists(__DIR__ . '/../views/iringan/index.php') ? file_get_contents(__DIR__ . '/../views/iringan/index.php') : file_get_contents(__DIR__ . '/../iringan.php');
 $pertemuanHtml = file_exists(__DIR__ . '/../views/pertemuan/index.php') ? file_get_contents(__DIR__ . '/../views/pertemuan/index.php') : file_get_contents(__DIR__ . '/../pertemuan.php');
-$footerHtml = file_get_contents(__DIR__ . '/../includes/footer.php');
+$footerHtml = file_get_contents(__DIR__ . '/../includes/footer.php') . "\n" . file_get_contents(__DIR__ . '/../assets/js/app.js');
 $headerHtml = file_get_contents(__DIR__ . '/../includes/header.php');
 $mainCss = file_get_contents(__DIR__ . '/../style/main.css');
 

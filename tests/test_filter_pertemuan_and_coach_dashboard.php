@@ -1,4 +1,8 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
 /**
  * Test Suite:
  * 1. Filter di Jadwal Pertemuan (pertemuan.php):
@@ -67,17 +71,21 @@ $indexContent = file_exists(__DIR__ . '/../views/dashboard/staff.php')
     : file_get_contents(__DIR__ . '/../index.php');
 
 // Check that Card 3 uses "Coach Terdaftar"
-assert_test(strpos($indexContent, '<h6 class="mb-2"><i class="fa fa-chalkboard-user me-1"></i> Coach Terdaftar</h6>') !== false, "index.php has Coach Terdaftar card without role gating");
+assert_test(preg_match('/<h[1-6][^>]*>.*?Coach Terdaftar\s*<\/h[1-6]>/s', $indexContent) === 1, "index.php has Coach Terdaftar card heading without role gating");
 
 // Check that Murid Dilatih per Coach is NOT hidden from coach
 assert_test(strpos($indexContent, "<?php if (!\$isCoach): ?>\n    <div class=\"card p-3\">\n      <div class=\"d-flex justify-content-between align-items-center mb-2\">\n        <h5 class=\"mb-0\" style=\"font-family:'Outfit',sans-serif;font-weight:600;\"><i class=\"fa fa-chart-bar me-2\"") === false, "index.php does NOT wrap 'Murid Dilatih per Coach' in !isCoach");
-assert_test(strpos($indexContent, '<i class="fa fa-chart-bar me-2" style="color:var(--primary);"></i>Murid Dilatih per Coach</h5>') !== false, "index.php renders 'Murid Dilatih per Coach' card for all staff");
+assert_test(preg_match('/<h[1-6][^>]*>.*?Murid Dilatih per Coach\s*<\/h[1-6]>/s', $indexContent) === 1, "index.php renders 'Murid Dilatih per Coach' card for all staff");
 
 // Check that Modal Pertemuan/Target detail shows Coach Pembina column for all staff
-assert_test(strpos($indexContent, '<th style="width:140px;">Capaian</th>' . "\n" . '                <th>Coach Pembina</th>') !== false, "index.php shows Coach Pembina header in modal for all staff");
+assert_test(preg_match('/<th[^>]*>Capaian<\/th>\s*<th>Coach Pembina<\/th>/', $indexContent) === 1, "index.php shows Coach Pembina header in modal for all staff");
 
 // Check that summary calculates studio-wide
-assert_test(strpos($indexContent, '$rencanaService->getSummary($tahunDipilih, $bulanDipilih, null)') !== false, "index.php calculates studio-wide target summary without coach restriction");
+assert_test(
+    strpos($indexContent, '$this->rencanaService->getSummary($tahunDipilih, $bulanDipilih, null)') !== false
+    || strpos($indexContent, '$rencanaService->getSummary($tahunDipilih, $bulanDipilih, null)') !== false,
+    "index.php calculates studio-wide target summary without coach restriction"
+);
 
 // Check HTTP responses for coach vs owner
 $baseUrl = 'http://localhost/chorus_studio';

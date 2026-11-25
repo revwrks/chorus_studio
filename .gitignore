@@ -23,9 +23,10 @@ setup/tambah_akun_orang_tua_infinityfree.sql
 !/assets/tmp/.htaccess
 !/assets/tmp/.gitkeep
 
-# User Uploads (keep upload directory, ignore generated media)
+# User Uploads (keep upload directory and security rules, ignore generated media)
 /assets/uploads/*
 !/assets/uploads/.gitkeep
+!/assets/uploads/.htaccess
 
 # Test runtime artifacts and cookies
 /tests/cookie_*.txt

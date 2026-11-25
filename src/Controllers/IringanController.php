@@ -55,6 +55,9 @@ class IringanController extends BaseController
         $paginated = $isStaff ? $this->iringanService->getPaginated(1, 9999) : null;
         $rows = $paginated['data'] ?? [];
         $totalRows = count($rows);
+        $hybridIringan = ($isOrtu && $activeChild)
+            ? $this->iringanService->getHybridForMurid((int)$activeChild['id'])
+            : [];
 
         // Helper building page URLs
         $buildPageUrl = function(int $targetPage, ?int $targetLimit = null) use ($search, $filterKategori, $filterMurid, $perPage): string {
@@ -81,6 +84,7 @@ class IringanController extends BaseController
             'paginated' => $paginated,
             'rows' => $rows,
             'totalRows' => $totalRows,
+            'hybridIringan' => $hybridIringan,
             'buildPageUrl' => $buildPageUrl,
             'iringanService' => $this->iringanService,
         ]);

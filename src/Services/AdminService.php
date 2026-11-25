@@ -51,12 +51,16 @@ class AdminService
         return $map;
     }
 
-    public function create(string $username, string $nama, string $password, string $role, array $muridIds = []): array
+    public function create(string $username, string $nama, string $password, string $role, array $muridIds = [], string $actorRole = 'owner'): array
     {
         $username = trim($username);
         $nama = trim($nama);
         $role = in_array($role, ['owner', 'admin', 'coach', 'orang_tua'], true) ? $role : 'admin';
         $muridIds = array_map('intval', array_filter($muridIds));
+
+        if ($actorRole !== 'owner' && $role === 'owner') {
+            return ['success' => false, 'message' => 'Hanya Owner yang dapat membuat akun Owner.'];
+        }
 
         if (empty($username) || empty($nama) || empty($password)) {
             return ['success' => false, 'message' => 'Username, nama lengkap, dan password wajib diisi.'];
@@ -66,8 +70,8 @@ class AdminService
             return ['success' => false, 'message' => 'Username harus memiliki panjang antara 3 hingga 50 karakter.'];
         }
 
-        if (strlen($password) < 4) {
-            return ['success' => false, 'message' => 'Password minimal terdiri dari 4 karakter.'];
+        if (strlen($password) < 6) {
+            return ['success' => false, 'message' => 'Password minimal terdiri dari 6 karakter.'];
         }
 
         if ($role === 'orang_tua' && empty($muridIds)) {
@@ -110,19 +114,21 @@ class AdminService
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
+            error_log('[AdminService::create] ' . $e->getMessage());
             if ($e->getCode() == 23000 || strpos($e->getMessage(), 'Duplicate entry') !== false) {
                 return ['success' => false, 'message' => 'Gagal menyimpan: Terjadi duplikasi data unik (misalnya username sudah dipakai).'];
             }
-            return ['success' => false, 'message' => 'Terjadi kesalahan database saat memproses akun: ' . $e->getMessage()];
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat memproses akun. Silakan coba lagi.'];
         } catch (Exception $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[AdminService::create] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 
-    public function update(int $id, string $username, string $nama, ?string $password, string $role, array $muridIds = []): array
+    public function update(int $id, string $username, string $nama, ?string $password, string $role, array $muridIds = [], string $actorRole = 'owner'): array
     {
         $id = (int)$id;
         $username = trim($username);
@@ -134,9 +140,15 @@ class AdminService
             return ['success' => false, 'message' => 'Data akun tidak lengkap.'];
         }
 
-        $existing = $this->getById($id);
+        $stmtExisting = $this->pdo->prepare('SELECT id, username, role FROM admin WHERE id = ?');
+        $stmtExisting->execute([$id]);
+        $existing = $stmtExisting->fetch();
         if (!$existing) {
             return ['success' => false, 'message' => 'Akun yang akan diedit tidak ditemukan.'];
+        }
+
+        if ($actorRole !== 'owner' && ($existing['role'] === 'owner' || $role === 'owner')) {
+            return ['success' => false, 'message' => 'Hanya Owner yang dapat mengubah atau menetapkan role Owner.'];
         }
 
         // Check last owner protection
@@ -160,9 +172,9 @@ class AdminService
             $this->pdo->beginTransaction();
 
             if (!empty($password)) {
-                if (strlen($password) < 4) {
+                if (strlen($password) < 6) {
                     $this->pdo->rollBack();
-                    return ['success' => false, 'message' => 'Password baru minimal terdiri dari 4 karakter.'];
+                    return ['success' => false, 'message' => 'Password baru minimal terdiri dari 6 karakter.'];
                 }
                 $hash = password_hash($password, PASSWORD_DEFAULT);
                 $this->pdo->prepare('UPDATE admin SET username=?, nama=?, role=?, password=? WHERE id=?')
@@ -190,19 +202,21 @@ class AdminService
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
+            error_log('[AdminService::update] ' . $e->getMessage());
             if ($e->getCode() == 23000 || strpos($e->getMessage(), 'Duplicate entry') !== false) {
                 return ['success' => false, 'message' => 'Gagal menyimpan: Terjadi duplikasi data unik (misalnya username sudah dipakai).'];
             }
-            return ['success' => false, 'message' => 'Terjadi kesalahan database saat memproses akun: ' . $e->getMessage()];
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat memproses akun. Silakan coba lagi.'];
         } catch (Exception $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[AdminService::update] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 
-    public function delete(int $id, int $currentUserId): array
+    public function delete(int $id, int $currentUserId, string $actorRole = 'owner'): array
     {
         if ($id <= 0) {
             return ['success' => false, 'message' => 'ID akun tidak valid.'];
@@ -217,6 +231,10 @@ class AdminService
             return ['success' => false, 'message' => 'Akun tidak ditemukan.'];
         }
 
+        if ($actorRole !== 'owner' && $target['role'] === 'owner') {
+            return ['success' => false, 'message' => 'Hanya Owner yang dapat menghapus akun Owner.'];
+        }
+
         $ownerCount = $this->countOwners();
         if ($target['role'] === 'owner' && $ownerCount <= 1) {
             return ['success' => false, 'message' => 'Tidak dapat menghapus satu-satunya akun Owner.'];
@@ -227,9 +245,11 @@ class AdminService
             ActivityLogService::log('USER_DELETE', "Menghapus akun pengguna: {$target['nama']} ({$target['username']})", 'danger');
             return ['success' => true, 'message' => "Akun '{$target['username']}' berhasil dihapus."];
         } catch (PDOException $e) {
-            return ['success' => false, 'message' => 'Gagal menghapus akun karena kendala database: ' . $e->getMessage()];
+            error_log('[AdminService::delete] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Gagal menghapus akun karena kendala database. Silakan coba lagi.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[AdminService::delete] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 
@@ -267,8 +287,8 @@ class AdminService
         $passwordHash = null;
         if ($password !== null && trim($password) !== '') {
             $p = trim($password);
-            if (strlen($p) < 4) {
-                return ['success' => false, 'message' => 'Password baru minimal terdiri dari 4 karakter.'];
+            if (strlen($p) < 6) {
+                return ['success' => false, 'message' => 'Password baru minimal terdiri dari 6 karakter.'];
             }
             $passwordHash = password_hash($p, PASSWORD_DEFAULT);
         }
@@ -284,18 +304,20 @@ class AdminService
 
             // Perbarui sesi aktif jika pengguna yang mengedit adalah akun yang sedang login
             if (!empty($_SESSION['admin_id']) && (int)$_SESSION['admin_id'] === $id) {
-                $_SESSION['admin_user'] = $username;
+                $_SESSION['admin_username'] = $username;
                 $_SESSION['admin_nama'] = $nama;
             }
 
             return ['success' => true, 'message' => 'Profil akun Anda berhasil diperbarui.'];
         } catch (PDOException $e) {
+            error_log('[AdminService::updateOwnProfile] ' . $e->getMessage());
             if ($e->getCode() == 23000 || strpos($e->getMessage(), 'Duplicate entry') !== false) {
                 return ['success' => false, 'message' => "Username '$username' sudah dipakai akun lain."];
             }
-            return ['success' => false, 'message' => 'Terjadi kesalahan database: ' . $e->getMessage()];
+            return ['success' => false, 'message' => 'Terjadi kesalahan database saat memperbarui profil. Silakan coba lagi.'];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()];
+            error_log('[AdminService::updateOwnProfile] ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem saat memproses data. Silakan coba lagi.'];
         }
     }
 }

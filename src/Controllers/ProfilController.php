@@ -1,6 +1,7 @@
 <?php
 namespace App\Controllers;
 
+use App\Core\Auth;
 use App\Core\BaseController;
 use App\Services\AdminService;
 
@@ -34,11 +35,7 @@ class ProfilController extends BaseController
         ];
         $roleLabel = $roleLabels[$roleKey] ?? ucfirst($roleKey);
 
-        $connectedKids = [];
-        if ($roleKey === 'orang_tua') {
-            $ortuMuridMap = $this->adminService->getOrtuMuridMap();
-            $connectedKids = $ortuMuridMap[$currentId] ?? [];
-        }
+        $connectedKids = Auth::isOrangTua() ? Auth::getOrangTuaAnakList($currentId) : [];
 
         if ($this->isPost()) {
             $this->handlePost($currentId);

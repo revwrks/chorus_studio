@@ -1,4 +1,8 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
 /**
  * Test Navbar Child Switcher Contrast & Theming
  */
@@ -14,7 +18,11 @@ $css = file_get_contents(__DIR__ . '/../style/main.css');
 assert_true(strpos($css, '.nav-child-btn') !== false, "CSS defines .nav-child-btn");
 assert_true(strpos($css, '.nav-child-pill') !== false, "CSS defines .nav-child-pill");
 assert_true(strpos($css, 'color: var(--text) !important') !== false, "Pill text uses var(--text)");
-assert_true(strpos($css, 'html.theme-dark .nav-child-btn') !== false, "CSS defines dark theme variant for nav-child-btn");
+assert_true(
+    preg_match('/html\.theme-dark[^{]*\{[^}]*--surface:[^}]*--text:[^}]*--border:/s', $css) === 1
+    && preg_match('/\.nav-child-btn,\s*\.nav-child-pill\s*\{[^}]*var\(--text\)[^}]*var\(--surface\)[^}]*var\(--border\)/s', $css) === 1,
+    "CSS defines dark theme tokens (--surface, --text, --border) consumed by .nav-child-btn"
+);
 assert_true(strpos($css, '.dropdown-menu') !== false, "CSS defines theme-aware .dropdown-menu");
 
 // 2. Check includes/header.php does NOT contain btn-outline-light or hardcoded white text

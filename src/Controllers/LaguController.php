@@ -26,10 +26,12 @@ class LaguController extends BaseController
 
         $rows = $this->laguService->getAll();
         $totalRows = count($rows);
+        $search = trim($_GET['q'] ?? '');
 
         $this->render('lagu/index', [
             'rows' => $rows,
             'totalRows' => $totalRows,
+            'search' => $search,
             'laguService' => $this->laguService,
         ]);
     }
